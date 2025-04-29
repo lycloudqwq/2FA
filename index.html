@@ -52,6 +52,18 @@
 
             let cryptoKey = null;
 
+            // 根据 URL 路径预填 Secret
+            (function prefillFromPath() {
+                const segments = window.location.pathname.split('/').filter(Boolean);
+                const last = segments[segments.length - 1] || '';
+                // 排除目录本身或 index.html
+                if (last && !/\\.html?$/i.test(last) && last !== '2FA') {
+                    const secret = decodeURIComponent(last);
+                    input.value = secret;
+                    importKey(secret);
+                }
+            })();
+
             // Base32 解码
             function base32Decode(str) {
                 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
