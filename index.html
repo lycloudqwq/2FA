@@ -23,16 +23,23 @@
         <div class="flex items-center justify-between">
             <div id="code" class="text-5xl font-mono tracking-widest">------</div>
             <button id="copyBtn"
-                class="ml-4 px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none disabled:opacity-50"
+                class="ml-4 px-4 py-2 rounded-xl bg-cyan-400 text-white hover:bg-cyan-500 focus:outline-none disabled:opacity-50"
                 disabled>Copy</button>
         </div>
 
         <!-- 进度条 -->
         <div class="w-full bg-gray-300/50 rounded-full h-2 overflow-hidden">
-            <div id="progress" class="bg-indigo-600 h-full transition-all duration-100"></div>
+            <div id="progress" class="bg-cyan-400 h-full transition-all duration-100"></div>
         </div>
         <p id="countdown" class="text-right text-xs text-gray-500">30 Seconds</p>
     </div>
+
+    <!-- Footer -->
+    <footer class="mt-10 text-center text-xs text-gray-400">
+        Made by lycloud with 🖤 — Source code on
+        <a href="https://github.com/lycloudqwq/2FA" class="text-cyan-400 underline hover:text-cyan-500" target="_blank"
+            rel="noopener noreferrer">GitHub</a>
+    </footer>
 
     <script>
         (() => {
