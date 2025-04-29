@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TOTP Calculator</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div class="w-full max-w-md space-y-6">
+        <!-- Secret 输入 -->
+        <div>
+            <label for="secret" class="block text-sm font-medium text-gray-700">TOTP Secret</label>
+            <input id="secret" type="text" autocomplete="off"
+                class="mt-1 w-full rounded-xl border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-3"
+                placeholder="Your Secret Key" />
+        </div>
+
+        <!-- 验证码 & 复制按钮 -->
+        <div class="flex items-center justify-between">
+            <div id="code" class="text-5xl font-mono tracking-widest">------</div>
+            <button id="copyBtn"
+                class="ml-4 px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none disabled:opacity-50"
+                disabled>Copy</button>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="w-full bg-gray-300/50 rounded-full h-2 overflow-hidden">
+            <div id="progress" class="bg-indigo-600 h-full transition-all duration-100"></div>
+        </div>
+        <p id="countdown" class="text-right text-xs text-gray-500">30 Seconds</p>
+    </div>
+
+    <script>
+        (() => {
+            const input = document.getElementById('secret');
+            const codeEl = document.getElementById('code');
+            const progressEl = document.getElementById('progress');
+            const countdownEl = document.getElementById('countdown');
+            const copyBtn = document.getElementById('copyBtn');
+            const timeStep = 30; // 30 秒时间窗口
+
+            let cryptoKey = null;
+
+            // Base32 解码
+            function base32Decode(str) {
+                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+                const clean = str.replace(/=+$/, '').toUpperCase().replace(/[^A-Z2-7]/g, '');
+                const bytes = [];
+                let bits = 0, value = 0, index = 0;
+                for (let char of clean) {
+                    const v = alphabet.indexOf(char);
+                    if (v === -1) continue;
+                    value = (value << 5) | v;
+                    index += 5;
+                    if (index >= 8) {
+                        bytes.push((value >> (index - 8)) & 0xFF);
+                        index -= 8;
+                    }
+                }
+                return new Uint8Array(bytes);
+            }
+
+            // 导入密钥
+            async function importKey(secret) {
+                try {
+                    const keyBytes = base32Decode(secret);
+                    cryptoKey = await crypto.subtle.importKey(
+                        'raw',
+                        keyBytes,
+                        { name: 'HMAC', hash: 'SHA-1' },
+                        false,
+                        ['sign']
+                    );
+                    copyBtn.disabled = false;
+                } catch (e) {
+                    cryptoKey = null;
+                    copyBtn.disabled = true;
+                }
+            }
+
+            // 生成 TOTP
+            async function generateCode() {
+                if (!cryptoKey) {
+                    codeEl.textContent = '------';
+                    return;
+                }
+                const epoch = Math.floor(Date.now() / 1000);
+                const counter = Math.floor(epoch / timeStep);
+                const buffer = new ArrayBuffer(8);
+                const view = new DataView(buffer);
+                view.setUint32(4, counter, false); // 仅写入低 4 字节，大端序
+
+                const signature = await crypto.subtle.sign('HMAC', cryptoKey, buffer);
+                const bytes = new Uint8Array(signature);
+                const offset = bytes[bytes.length - 1] & 0x0f;
+                const binary = ((bytes[offset] & 0x7f) << 24) |
+                    ((bytes[offset + 1] & 0xff) << 16) |
+                    ((bytes[offset + 2] & 0xff) << 8) |
+                    (bytes[offset + 3] & 0xff);
+                const otp = (binary % 1e6).toString().padStart(6, '0');
+                codeEl.textContent = otp;
+            }
+
+            // 复制按钮
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(codeEl.textContent);
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+            });
+
+            // 监听输入
+            input.addEventListener('input', (e) => {
+                importKey(e.target.value.trim());
+            });
+
+            // 更新进度 & 验证码
+            function tick() {
+                const now = Date.now();
+                const seconds = Math.floor(now / 1000);
+                const rem = timeStep - (seconds % timeStep);
+                const pct = ((timeStep - rem) / timeStep) * 100;
+                progressEl.style.width = pct + '%';
+                countdownEl.textContent = `${rem} Seconds`;
+                generateCode();
+            }
+            setInterval(tick, 500);
+            tick();
+        })();
+    </script>
+</body>
+
+</html>
