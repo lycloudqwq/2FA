@@ -29,7 +29,7 @@
 
         <!-- 进度条 -->
         <div class="w-full bg-gray-300/50 rounded-full h-2 overflow-hidden">
-            <div id="progress" class="bg-cyan-400 h-full transition-[width] duration-300 ease-linear"></div>
+            <div id="progress" class="bg-cyan-400 h-full transition-all duration-300"></div>
         </div>
         <p id="countdown" class="text-right text-xs text-gray-500">30 Seconds</p>
     </div>
@@ -51,6 +51,7 @@
             const timeStep = 30; // 30 秒时间窗口
 
             let cryptoKey = null;
+            let lastOtp = '';
 
             // 参数预填 Secret
             const preSecret = location.search ? decodeURIComponent(location.search.slice(1)) : '';
@@ -116,7 +117,10 @@
                     ((bytes[offset + 2] & 0xff) << 8) |
                     (bytes[offset + 3] & 0xff);
                 const otp = (binary % 1e6).toString().padStart(6, '0');
-                codeEl.textContent = otp;
+                if (otp !== lastOtp) {
+                    codeEl.textContent = otp;
+                    lastOtp = otp;
+                }
             }
 
             // 复制按钮
@@ -140,8 +144,8 @@
                 progressEl.style.width = pct + '%';
                 countdownEl.textContent = `${rem} Seconds`;
                 generateCode();
-                requestAnimationFrame(tick);
             }
+            setInterval(tick, 500);
             tick();
         })();
     </script>
