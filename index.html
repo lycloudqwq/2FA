@@ -29,7 +29,7 @@
 
         <!-- 进度条 -->
         <div class="w-full bg-gray-300/50 rounded-full h-2 overflow-hidden">
-            <div id="progress" class="bg-cyan-400 h-full transition-all duration-100"></div>
+            <div id="progress" class="bg-cyan-400 h-full transition-[width] duration-300 ease-linear"></div>
         </div>
         <p id="countdown" class="text-right text-xs text-gray-500">30 Seconds</p>
     </div>
@@ -140,8 +140,8 @@
                 progressEl.style.width = pct + '%';
                 countdownEl.textContent = `${rem} Seconds`;
                 generateCode();
+                requestAnimationFrame(tick);
             }
-            setInterval(tick, 500);
             tick();
         })();
     </script>
