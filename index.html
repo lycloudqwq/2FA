@@ -57,41 +57,34 @@
             const preSecret = location.search ? decodeURIComponent(location.search.slice(1)) : '';
             if (preSecret) {
                 input.value = preSecret;
-                importKey(preSecret.trim());
-            }
-
-            // Base32 解码
-            function base32Decode(str) {
-                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-                const clean = str.replace(/=+$/, '').toUpperCase().replace(/[^A-Z2-7]/g, '');
-                const bytes = [];
-                let bits = 0, value = 0, index = 0;
-                for (let char of clean) {
-                    const v = alphabet.indexOf(char);
-                    if (v === -1) continue;
-                    value = (value << 5) | v;
-                    index += 5;
-                    if (index >= 8) {
-                        bytes.push((value >> (index - 8)) & 0xFF);
-                        index -= 8;
-                    }
-                }
-                return new Uint8Array(bytes);
+                importKeyFromBase32(preSecret.trim())
             }
 
             // 导入密钥
-            async function importKey(secret) {
+            async function importKeyFromBase32(secret) {
+                const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+                const s = secret.replace(/=+$/, '').toUpperCase().replace(/[^A-Z2-7]/g, '');
+                let bits = 0, value = 0, bytes = [];
+                for (let c of s) {
+                    let v = alphabet.indexOf(c);
+                    if (v < 0) continue;
+                    value = (value << 5) | v;
+                    bits += 5;
+                    if (bits >= 8) {
+                        bytes.push((value >> (bits - 8)) & 0xFF);
+                        bits -= 8;
+                    }
+                }
                 try {
-                    const keyBytes = base32Decode(secret);
                     cryptoKey = await crypto.subtle.importKey(
                         'raw',
-                        keyBytes,
+                        new Uint8Array(bytes),
                         { name: 'HMAC', hash: 'SHA-1' },
                         false,
                         ['sign']
                     );
                     copyBtn.disabled = false;
-                } catch (e) {
+                } catch {
                     cryptoKey = null;
                     copyBtn.disabled = true;
                 }
@@ -131,9 +124,7 @@
             });
 
             // 监听输入
-            input.addEventListener('input', (e) => {
-                importKey(e.target.value.trim());
-            });
+            input.addEventListener('input', e => importKeyFromBase32(e.target.value.trim()));
 
             // 更新进度 & 验证码
             function tick() {
